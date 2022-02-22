@@ -1,7 +1,235 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+  <style>
+    body {
+      padding: 100px;
+      width: 1000px;
+      margin: auto;
+      text-align: left;
+      font-weight: 300;
+      font-family: 'Open Sans', sans-serif;
+      color: #121212;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+  </style>
+  <title>CS 184 Mesh Editor</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+  <h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2020</h1>
+  <h1 align="middle">Project 2: Mesh Editor</h1>
+  <h2 align="middle">Alex Hao, CS184-ACD</h2>
+  <h2 align="middle">Hanchen Wang, CS184-ACF</h2>
+
+  <br>
+  <h2 align="middle">Published at: https://cal-cs184-student.github.io/sp22-project-webpages-alexhbot/</h2>
+  
+  <br><br>
+
+  <div>
+
+    <h2 align="middle">Overview</h2>
+    <p> In this project, I started from implementing 1D Bezier curves via de Casteljau algorithm and naturally extending it to Bezier surfaces. Then, in section two, using the halfedge data structure, I implemented the algorithm for area-weighted vertex normals to be used for Phong shading. In search for a better way to construct smooth objects from a coarse mesh, I implemented edge flip and edge split algorithms, which are later used in the upsampling function that increases the resolution of the mesh using loop subdivision. At the end, I'm able to smoothly shade the object and upsample the mesh to gain much more details, which I find to be very fun and interesting. </p>
+    
+    <br><br>
+    
+    <h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
+    
+    <br><br>
+    
+    <h3 align="middle">Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
+    
+    <p> De Casteljau's algorithm calculates a single point on curve from a set of control points via recursive linear interpolation with a parameter t. In my implementation, for each call to the evaluateStep function, I iterated through all the points from the previous level and used linear interpolation on every pair of adjacent points, producing a set of intermediate points for the next level. </p>
+
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/Screen Shot 2022-02-20 at 6.24.16 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Step 0</figcaption>
+          </td>
+          <td>
+            <img src="images/Screen Shot 2022-02-20 at 6.24.37 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Step 1</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/Screen Shot 2022-02-20 at 6.24.49 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Step 2</figcaption>
+          </td>
+          <td>
+            <img src="images/Screen Shot 2022-02-20 at 6.24.58 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Step 3</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/Screen Shot 2022-02-20 at 6.25.09 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Step 4</figcaption>
+          </td>
+          <td>
+            <img src="images/Screen Shot 2022-02-20 at 6.25.19 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Step 5</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/Screen Shot 2022-02-20 at 6.25.32 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Final Bezier curve</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <br><br>
+    <img src="images/Screen Shot 2022-02-20 at 6.26.28 PM.png" align="middle" width="800px" />
+    <figcaption align="middle">A Bezier curve with different control points and parameter t. </figcaption>
+
+    <br><br>
+    
+    <h3 align="middle">Part 2: Bezier surfaces with separable 1D de Casteljau subdivision</h3>
+    
+    <p> To construct a Bezier surface, we simply run de Casteljeu algorithm on one axis and then the other. In my implementation, I first calculated n Bezier curves along the x axis from the control points with parameter u, then I used the points on those curves to construct a Bezier curve along the y axis with parameter y. </p>
+    
+    <img src="images/Screen Shot 2022-02-20 at 7.59.44 PM.png" align="middle" width="800px" />
+    <figcaption align="middle">bez/teapot.bez</figcaption>
+    
+    <br><br>
+    
+    <h2 align="middle">Section II: Sampling</h2>
+    
+    <br><br>
+    
+    <h3 align="middle">Part 3: Average normals for half-edge meshes</h3>
+    
+    <p> In my implementation, I traversed the halfedges to find all triangles adjacent to the vertex. For each triangle, I calculated the normal as the cross product of the two vectors that forms two of the edges of the triangle, and calculated the area of the triangle as a half of the magnitude of the cross product. Lastly, the normal of the vertex is given by the normalized sum of the normals of adjacent triangles weighted by the areas. </p>
+    
+    <img src="images/Screen Shot 2022-02-21 at 12.41.03 AM.png" align="middle" width="800px" />
+    <figcaption align="middle">dae/teapot.dae without vertex normals</figcaption>
+    
+    <img src="images/Screen Shot 2022-02-21 at 12.41.24 AM.png" align="middle" width="800px" />
+    <figcaption align="middle">dae/teapot.dae with vertex normals</figcaption>
+    
+    <br><br>
+    
+    <h3 align="middle">Part 4: Half-edge flip</h3>
+    
+    <p> In my implementation, I took the safe route and first saved a pointer to each face, vertex, edge, and halfedge; from there on I directly modified the pointers rather than dereferencing many times to get to the desired object. I modified the faces, vertices, and edges to have them point to the correct halfedge, and lastly I updated every halfedge with appropriate pointers. Fortunately, my method worked and did not result in any bug, so no debugging was necessary. </p>
+    
+    <img src="images/Screen Shot 2022-02-21 at 3.04.47 AM.png" align="middle" width="800px" />
+    <figcaption align="middle">The original teapot</figcaption>
+    
+    <img src="images/Screen Shot 2022-02-21 at 3.06.01 AM.png" align="middle" width="800px" />
+    <figcaption align="middle">The teapot with some edge flips</figcaption>
+    
+    <br><br>
+    
+    <h3 align="middle">Part 5: Half-edge split</h3>
+    
+    <p> Similar to part 4, I chose a safe approach, although this might involve some extra work. I first saved a pointer to each face, vertex, edge, and halfedge; from there on I directly modified the pointers rather than dereferencing many times to get to the desired object. I added a new vertex m that is the average of the two vertices of the input edge, as well as four new edges, eight new halfedges, and two new faces all adjacent to m. I modified the faces, vertices, and edges to have them point to the correct halfedge, and I updated every halfedge with appropriate pointers. Lastly, I deleted the original input edge and its halfedges from the mesh. Fortunately, my method worked and did not result in any bug, so no debugging was necessary. </p>
+    
+    <img src="images/Screen Shot 2022-02-21 at 4.43.48 AM.png" align="middle" width="800px" />
+    <figcaption align="middle">The original teapot</figcaption>
+    
+    <img src="images/Screen Shot 2022-02-21 at 4.44.43 AM.png" align="middle" width="800px" />
+    <figcaption align="middle">The teapot with some edge splits</figcaption>
+    
+    <img src="images/Screen Shot 2022-02-21 at 4.48.07 AM.png" align="middle" width="800px" />
+    <figcaption align="middle">The teapot with a combination of both edge splits and edge flips</figcaption>
+    
+    <br><br>
+    
+    <h3 align="middle">Part 6: Loop subdivision for mesh upsampling</h3>
+
+    <p> In my implementation, I first calculated and saved all the updated vertex positions for future use, then I proceeded to split and flip edges as described in the algorithm, lastly I updated all the vertices with their corresponding new locations. An interesting trick is that, since we don't want to re-split new edges, I stored all the original edges in a separate vector and performed splits on this subset only, rather than iterating through the entire set of edges. </p>
+    
+    <p> After loop subdivision, the sharp edges and corners became smoother, as shown below, but the rendering took much longer. </p>
+    
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/Screen Shot 2022-02-21 at 7.43.15 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Original mesh</figcaption>
+          </td>
+          <td>
+            <img src="images/Screen Shot 2022-02-21 at 7.43.34 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">After one iteration of loop subdivision</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    
+    <p> We can retain some of the sharpness by pre-splitting the edges near the corner to produce a higher edge density. </p>
+        
+        <div align="middle">
+          <table style="width=100%">
+            <tr>
+              <td>
+                <img src="images/Screen Shot 2022-02-21 at 8.05.11 PM.png" align="middle" width="500px" />
+                <figcaption align="middle">Original mesh</figcaption>
+              </td>
+              <td>
+                <img src="images/Screen Shot 2022-02-21 at 8.05.23 PM.png" align="middle" width="500px" />
+                <figcaption align="middle">After some iterations of loop subdivision</figcaption>
+              </td>
+            </tr>
+          </table>
+        </div>
+    <p> As seen below, the cube become slightly asymmetric after some iterations of loop subdivision. </p>
+    
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/Screen Shot 2022-02-21 at 7.55.28 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Original mesh</figcaption>
+          </td>
+          <td>
+            <img src="images/Screen Shot 2022-02-21 at 7.55.45 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">After some iterations of loop subdivision</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    
+    <p> This is because the vertices have different degrees. We can make the degrees of the vertices symmetric by splitting the diagonal edge on each side of the cube, as shown below.  </p>
+    
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/Screen Shot 2022-02-21 at 8.01.08 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">Original mesh</figcaption>
+          </td>
+          <td>
+            <img src="images/Screen Shot 2022-02-21 at 8.00.04 PM.png" align="middle" width="500px" />
+            <figcaption align="middle">After some iterations of loop subdivision</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <h2 align="middle">Section III: Optional Extra Credit</h2>
+    <p>If you are not participating in the optional mesh competition, don't worry about this section!</p>
+
+    <h3 align="middle">Part 7: Design your own mesh!</h3>
+
+</body>
+
 </html>
