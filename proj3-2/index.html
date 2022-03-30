@@ -1,7 +1,163 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>  
+    div.padded {  
+      padding-top: 0px;  
+      padding-right: 100px;  
+      padding-bottom: 0.25in;  
+      padding-left: 100px;  
+    }  
+  </style> 
+<title>Alex & Hanchen  |  CS 184</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+<body>
+<br />
+<h1 align="middle">Assignment 3-2: PathTracer 2</h1>
+    <h2 align="middle">Alex Hao, CS184-ACD</h2>
+    <h2 align="middle">Hanchen Wang, CS184-ACF</h2>
+
+    <br>
+    <h2 align="middle">Published at: https://cal-cs184-student.github.io/sp22-project-webpages-alexhbot/</h2>
+    <br>
+    
+    <div class="padded">
+    <h2 align="middle">Overview</h2>
+        <p> In this project, I implement methods to trace light rays in scenes invloving transparent and conductor materials. In part one, I implement reflection and refraction of light rays so that I can render glass spheres correctly. Then, in part two, I add support for microfacet materials where I account for the roughness and reflectance of the surface. This allows me to render different metal objects with various degrees of roughness. At the end, I am able to render realistic lighting on virtually all materials, which is really fascinating.  </p>
+    
+    </br>
+
+    <h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+        <p> Here are some images of scene CBspheres.dae with various max_ray_depth values. </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td>
+                        <td align="middle">
+                        <img src="images/spheres_0.png" width="480px" />
+                        <figcaption align="middle">max_ray_depth = 0</figcaption>
+                    </td>
+                    <td>
+                        <td align="middle">
+                        <img src="images/spheres_1.png" width="480px" />
+                        <figcaption align="middle">max_ray_depth = 1</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <td align="middle">
+                        <img src="images/spheres_2.png" width="480px" />
+                        <figcaption align="middle">max_ray_depth = 2</figcaption>
+                    </td>
+                    <td>
+                        <td align="middle">
+                        <img src="images/spheres_3.png" width="480px" />
+                        <figcaption align="middle">max_ray_depth = 3</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <td align="middle">
+                        <img src="images/spheres_4.png" width="480px" />
+                        <figcaption align="middle">max_ray_depth = 4</figcaption>
+                    </td>
+                    <td>
+                        <td align="middle">
+                        <img src="images/spheres_5.png" width="480px" />
+                        <figcaption align="middle">max_ray_depth = 5</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <td align="middle">
+                        <img src="images/spheres_100.png" width="480px" />
+                        <figcaption align="middle">max_ray_depth = 100</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <p> With depth = 0, there can't be any bounce, so all we see is the light source itself. </p>
+        <p> With depth = 1, we can now see the objects that are directly illumited by the light source, but the spheres remain dark. </p>
+        <p> With depth = 2, the metal sphere is no longer dark, since reflections come from 2-bounce light rays: from lightsource to object, from object to metal sphere, and from metal sphere to camera. The glass sphere is mostly dark at this point, since the glass material is configured to be more refractive than reflective. </p>
+        <p> With depth = 3, the metal sphere is brighter, since more light rays can now get to it, but more importantly we can now see through the transparent glass sphere. For refarction to be seen, the light ray must bounce three times: from light source to object, from object to outter glass surface, from outter to inner glass surface, and finally from inner glass surface to the camera. Thus we only see the transparent material with at least three light bounces. </p>
+        <p> With depth = 4 and above, the only major difference is that we now see the bright dot near the bottom right corner. For this to happen, we not only need refraction, but also an additional bounce in which the light rays comes out of the glass sphere and hits the wall, bouncing off to the camera. Therefore we need at least 4 light bounces to see this light spot. </p>
+    
+    </br>
+    
+    <h2 align="middle">Part 2: Microfacet Material</h2>
+        <p> Here are some images of scene CBdragon_microfacet_au.dae with various alpha values. As alpha increases, the material appears to be more matte, while lower alpha values result in glossier appearances. </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td>
+                        <td align="middle">
+                        <img src="images/dragon_0.005.png" width="480px" />
+                        <figcaption align="middle">alpha = 0.005</figcaption>
+                    </td>
+                    <td>
+                        <td align="middle">
+                        <img src="images/dragon_0.05.png" width="480px" />
+                        <figcaption align="middle">alpha = 0.05</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <td align="middle">
+                        <img src="images/dragon_0.25.png" width="480px" />
+                        <figcaption align="middle">alpha = 0.25</figcaption>
+                    </td>
+                    <td>
+                        <td align="middle">
+                        <img src="images/dragon_0.5.png" width="480px" />
+                        <figcaption align="middle">alpha = 0.5</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <p> Here is a comparison of scene CBbunny_microfacet_cu.dae rendered with the default hemisphere sampling versus the newly implemented importance sampling. As seen, with the same number of samples, the importance samping version has much less noise and renders the metal more realistically, therefore it is much more efficient than the default sampling scheme. </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td>
+                        <td align="middle">
+                        <img src="images/bunny_def.png" width="480px" />
+                        <figcaption align="middle">hemisphere sampling</figcaption>
+                    </td>
+                    <td>
+                        <td align="middle">
+                        <img src="images/bunny_imp.png" width="480px" />
+                        <figcaption align="middle">importance sampling</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <p> Here is a rendering of a titanium bunny. </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td>
+                        <td align="middle">
+                        <img src="images/bunny_ti.png" width="480px" />
+                        <figcaption align="middle">Titanium bunny</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    
+    
+    </br>
+    
+    <h2 align="middle">Collaboration</h2>
+        <p> We collaborated closely on every part, and we both learned a lot about tracing light rays on different materials. </p>
+        
+</div>
+</body>
 </html>
+
+
+
+
